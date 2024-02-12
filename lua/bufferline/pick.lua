@@ -43,12 +43,13 @@ function M.write_buffer_sets()
 end
 
 ---@param element bufferline.Buffer
+---@param idx? string
 ---@return string?
-function M.get(element)
-  local cwd = vim.loop.cwd()
-  local set = M.buffer_sets[cwd] or {}
-  if not M.buffer_sets[cwd] then
-    M.buffer_sets[cwd] = set
+function M.get(element, idx)
+  idx = idx or vim.loop.cwd()
+  local set = M.buffer_sets[idx] or {}
+  if not M.buffer_sets[idx] then
+    M.buffer_sets[idx] = set
   end
 
   if set[element.path] then
@@ -60,11 +61,15 @@ function M.get(element)
   local other_sets = {}
   local other_sets_merged = set
   local possible_letter
-  for other_cwd, other_set in pairs(M.buffer_sets) do
-    if other_cwd == cwd then goto continue end
+  for other_idx, other_set in pairs(M.buffer_sets) do
+    if vim.fn.isdirectory(other_idx) == 0 then
+      M.buffer_sets[other_idx] = nil
+      goto continue
+    end
+    if other_idx == idx then goto continue end
     local letter = other_set[element.path]
     if letter then
-      other_sets[other_cwd] = other_set
+      other_sets[other_idx] = other_set
       -- NOTE: we assume (and must maintain) that any previously assigned letters for this buffer are the same across buffer sets
       possible_letter = letter
       other_sets_merged = vim.tbl_extend("keep", other_sets_merged, other_set)
